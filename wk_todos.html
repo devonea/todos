@@ -657,17 +657,21 @@
         -webkit-overflow-scrolling: touch;
       }
 
-      /* 입력 폼: 날짜 입력 세로 배치 */
+      /* 입력 폼: 날짜 입력 가로 나란히 */
       .date-row {
-        flex-direction: column;
-        gap: 6px;
+        flex-direction: row;
+        gap: 8px;
       }
       .date-field {
-        width: 100%;
+        flex: 1;
+        width: auto;
       }
+      .date-field span { font-size: 12px; }
       .date-field input[type="date"] {
         flex: 1;
         width: 100%;
+        font-size: 12px;
+        padding: 4px 4px;
       }
 
       /* 정렬 버튼 */
@@ -712,14 +716,14 @@
         align-self: flex-start;
         margin-top: 2px;
       }
-      /* row 2: 카테고리 드롭다운 (체크박스 폭만큼 들여쓰기) */
+      /* row 1: 카테고리 드롭다운 (삭제 버튼 왼쪽) */
       .todo-category-select {
-        order: 6;
-        margin-left: 38px;           /* checkbox 8 + 22 + 8 */
-        width: calc(100% - 78px);    /* 38px(좌) + 40px(삭제버튼 자리) */
-        margin-bottom: 6px;
-        font-size: 13px;
-        padding: 5px 8px;
+        order: 3;
+        align-self: flex-start;
+        margin-top: 7px;
+        font-size: 12px;
+        padding: 5px 4px;
+        width: auto;
       }
 
       /* 날짜 표시 */
@@ -857,18 +861,18 @@
     const LOG_MAX     = 500;
 
     const CATEGORIES = [
-      { value: 'inbox',     label: 'Inbox' },
-      { value: 'todo',      label: 'To Do' },
-      { value: 'wait',      label: 'Wait' },
-      { value: 'someday',   label: 'Someday' },
-      { value: 'reference', label: 'Reference' },
+      { value: 'inbox',     label: 'Inbox',     icon: '📥' },
+      { value: 'todo',      label: 'To Do',     icon: '✅' },
+      { value: 'wait',      label: 'Wait',      icon: '⏳' },
+      { value: 'someday',   label: 'Someday',   icon: '🌱' },
+      { value: 'reference', label: 'Reference', icon: '📁' },
     ];
 
     // ── 메모리 상태 ───────────────────────────────────────
     let todos = [];
-    let currentCategory = 'inbox';
-    let currentSort    = 'updatedAt';
-    let currentSortDir = 'desc';      // 'asc' | 'desc'
+    let currentCategory = 'todo';
+    let currentSort    = 'targetDate';
+    let currentSortDir = 'asc';       // 'asc' | 'desc'
 
     // ── 활동 로그 ────────────────────────────────────────
 
@@ -1027,7 +1031,7 @@
       document.querySelectorAll('.sort-btn').forEach(btn => {
         const isActive = btn.dataset.sort === currentSort;
         btn.classList.toggle('active', isActive);
-        const label = btn.dataset.sort === 'updatedAt' ? '수정순' : '기한순';
+        const label = btn.dataset.sort === 'updatedAt' ? '수정순' : '목표순';
         btn.textContent = isActive ? label + dirIcon : label;
       });
     }
@@ -1166,7 +1170,7 @@
         CATEGORIES.forEach(cat => {
           const opt = document.createElement('option');
           opt.value = cat.value;
-          opt.textContent = cat.label;
+          opt.textContent = cat.icon;
           opt.selected = cat.value === todo.category;
           sel.appendChild(opt);
         });
