@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>할 일 관리</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ── App Shell ── */
+    .app {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      background: #1a1a2e;
+      color: #c8cfe0;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #5a6a8a;
+      padding: 0 20px 16px;
+    }
+
+    .category-list {
+      list-style: none;
+      flex: 1;
+    }
+
+    .category-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+
+    .category-item:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .category-item.active {
+      background: rgba(99, 179, 237, 0.15);
+      border-left-color: #63b3ed;
+      color: #ebf8ff;
+    }
+
+    .category-icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+    }
+
+    .category-name {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .badge {
+      background: #2d3748;
+      color: #90cdf4;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    .category-item.active .badge {
+      background: #2b6cb0;
+      color: #ebf8ff;
+    }
+
+    /* ── Main Content ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-shrink: 0;
+    }
+
+    .app-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a2e;
+      white-space: nowrap;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      color: #718096;
+      white-space: nowrap;
+    }
+
+    .progress-bar-bg {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #63b3ed, #4299e1);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .all-done-msg {
+      font-size: 13px;
+      color: #38a169;
+      font-weight: 600;
+      display: none;
+    }
+
+    /* ── Content Body ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Input Form ── */
+    .input-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-row input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .input-row input[type="text"]:focus {
+      border-color: #63b3ed;
+      box-shadow: 0 0 0 3px rgba(99,179,237,0.2);
+    }
+
+    .input-row input[type="text"]::placeholder {
+      color: #a0aec0;
+    }
+
+    .date-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .date-field {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #718096;
+    }
+
+    .date-field input[type="date"] {
+      padding: 5px 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #4a5568;
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .date-field input[type="date"]:focus {
+      border-color: #63b3ed;
+    }
+
+    .btn-add {
+      padding: 10px 18px;
+      background: #4299e1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-add:hover { background: #3182ce; }
+    .btn-add:active { background: #2b6cb0; }
+
+    /* ── Todo List ── */
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      transition: box-shadow 0.15s;
+    }
+
+    .todo-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+
+    .todo-item.done {
+      background: #f7fafc;
+      border-color: #edf2f7;
+    }
+
+    .todo-checkbox {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      cursor: pointer;
+      accent-color: #4299e1;
+      margin-top: 2px;
+    }
+
+    .todo-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .todo-text {
+      font-size: 15px;
+      cursor: pointer;
+      word-break: break-word;
+    }
+
+    .todo-item.done .todo-text {
+      text-decoration: line-through;
+      color: #a0aec0;
+    }
+
+    .todo-dates {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .todo-date {
+      font-size: 12px;
+      color: #718096;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .todo-date:hover {
+      background: #edf2f7;
+      border-color: #e2e8f0;
+    }
+
+    .todo-date.overdue {
+      color: #e53e3e;
+      font-weight: 600;
+    }
+
+    .todo-date.target-today {
+      color: #38a169;
+      font-weight: 600;
+    }
+
+    .todo-item.done .todo-date {
+      color: #a0aec0;
+      text-decoration: none;
+    }
+
+    .todo-item.done .todo-date.overdue,
+    .todo-item.done .todo-date.target-today {
+      color: #a0aec0;
+    }
+
+    .todo-category-select {
+      padding: 4px 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #4a5568;
+      background: #f7fafc;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .todo-category-select:focus {
+      border-color: #63b3ed;
+    }
+
+    .btn-delete {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: none;
+      color: #cbd5e0;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-delete:hover {
+      background: #fff5f5;
+      color: #e53e3e;
+    }
+
+    /* ── Header Icon Buttons (log, export, import) ── */
+    .btn-log, .btn-io {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      line-height: 1;
+      transition: background 0.15s;
+    }
+    .btn-log:hover, .btn-io:hover { background: #f0f2f5; }
+
+    /* ── Log Panel ── */
+    .log-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 100;
+      display: none;
+    }
+    .log-overlay.open { display: block; }
+
+    .log-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 360px;
+      max-width: 100vw;
+      height: 100vh;
+      background: #fff;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.13);
+      z-index: 101;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+    }
+    .log-panel.open { transform: translateX(0); }
+
+    .log-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 700;
+      font-size: 16px;
+      color: #1a1a2e;
+      flex-shrink: 0;
+    }
+
+    .log-close-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: #718096;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .log-close-btn:hover { background: #f0f2f5; }
+
+    .log-entries {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .log-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 20px;
+      border-bottom: 1px solid #f7fafc;
+    }
+    .log-entry:last-child { border-bottom: none; }
+
+    .log-entry-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+    .log-entry-body { flex: 1; min-width: 0; }
+
+    .log-entry-text {
+      font-size: 13px;
+      color: #2d3748;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    .log-entry-time {
+      font-size: 11px;
+      color: #a0aec0;
+      margin-top: 2px;
+    }
+
+    .log-empty {
+      text-align: center;
+      color: #a0aec0;
+      padding: 48px 20px;
+      font-size: 14px;
+    }
+
+    /* ── Sort Buttons ── */
+    .sort-group {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .sort-btn {
+      padding: 5px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #fff;
+      color: #718096;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+
+    .sort-btn.active {
+      background: #4299e1;
+      color: #fff;
+      border-color: #4299e1;
+    }
+
+    .sort-btn:hover:not(.active) {
+      background: #edf2f7;
+    }
+
+    /* ── Category Footer ── */
+    .category-footer {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .cat-progress-label {
+      font-size: 13px;
+      color: #718096;
+      white-space: nowrap;
+    }
+
+    .cat-progress-bar-bg {
+      flex: 1;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .cat-progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #68d391, #38a169);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .btn-clear-done {
+      padding: 7px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 7px;
+      background: #fff;
+      color: #718096;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .btn-clear-done:hover:not(:disabled) {
+      background: #fff5f5;
+      color: #e53e3e;
+      border-color: #feb2b2;
+    }
+
+    .btn-clear-done:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 0;
+      color: #a0aec0;
+      font-size: 14px;
+    }
+
+    .empty-state-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 600px) {
+
+      /* 앱 전체 레이아웃 */
+      .app {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      /* 사이드바 → 상단 탭 */
+      .sidebar {
+        width: 100%;
+        height: auto;
+        padding: 0;
+        flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-shrink: 0;
+      }
+      .sidebar-title { display: none; }
+      .category-list {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+      }
+      .category-item {
+        flex: 1;
+        min-width: 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 52px;
+        padding: 6px 4px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        gap: 2px;
+      }
+      .category-item.active {
+        border-left-color: transparent;
+        border-bottom-color: #63b3ed;
+      }
+      .category-icon { font-size: 20px; }
+      .category-name {
+        font-size: 10px;
+        max-width: 56px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* 헤더 */
+      .header {
+        padding: 10px 14px;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+      .app-title { font-size: 16px; }
+      .progress-label { font-size: 12px; }
+
+      /* 메인 & 콘텐츠 */
+      .main {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .content {
+        flex: 1;
+        padding: 12px 12px;
+        gap: 12px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* 입력 폼: 날짜 입력 세로 배치 */
+      .date-row {
+        flex-direction: column;
+        gap: 6px;
+      }
+      .date-field {
+        width: 100%;
+      }
+      .date-field input[type="date"] {
+        flex: 1;
+        width: 100%;
+      }
+
+      /* 정렬 버튼 */
+      .sort-btn { padding: 6px 10px; font-size: 12px; }
+
+      /* 할 일 항목: 2행 레이아웃 */
+      .todo-item {
+        flex-wrap: wrap;
+        padding: 4px 8px 6px 4px;
+        gap: 0;
+        align-items: flex-start;
+      }
+      /* row 1 끝에 invisible break를 삽입해 2행 분리 */
+      .todo-item::after {
+        content: '';
+        flex-basis: 100%;
+        height: 0;
+        order: 5;
+      }
+      /* row 1: 체크박스 */
+      .todo-checkbox {
+        order: 1;
+        width: 22px;
+        height: 22px;
+        margin: 10px 8px 0 8px;
+        flex-shrink: 0;
+      }
+      /* row 1: 텍스트 + 날짜 */
+      .todo-body {
+        order: 2;
+        flex: 1;
+        padding: 8px 0 4px;
+        min-width: 0;
+      }
+      /* row 1: 삭제 버튼 (44px 터치 영역) */
+      .btn-delete {
+        order: 4;
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+        flex-shrink: 0;
+        align-self: flex-start;
+        margin-top: 2px;
+      }
+      /* row 2: 카테고리 드롭다운 (체크박스 폭만큼 들여쓰기) */
+      .todo-category-select {
+        order: 6;
+        margin-left: 38px;           /* checkbox 8 + 22 + 8 */
+        width: calc(100% - 78px);    /* 38px(좌) + 40px(삭제버튼 자리) */
+        margin-bottom: 6px;
+        font-size: 13px;
+        padding: 5px 8px;
+      }
+
+      /* 날짜 표시 */
+      .todo-dates { gap: 6px; flex-wrap: wrap; }
+      .todo-date { font-size: 12px; }
+
+      /* 카테고리 푸터 */
+      .category-footer {
+        padding: 10px 12px;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .cat-progress-label { font-size: 12px; }
+      .btn-clear-done { font-size: 12px; padding: 6px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── 사이드바 ── -->
+    <nav class="sidebar">
+      <div class="sidebar-title">카테고리</div>
+      <ul class="category-list">
+        <li class="category-item active" data-category="inbox">
+          <span class="category-icon">📥</span>
+          <span class="category-name">Inbox</span>
+          <span class="badge" id="badge-inbox" style="display:none"></span>
+        </li>
+        <li class="category-item" data-category="todo">
+          <span class="category-icon">✅</span>
+          <span class="category-name">To Do</span>
+          <span class="badge" id="badge-todo" style="display:none"></span>
+        </li>
+        <li class="category-item" data-category="wait">
+          <span class="category-icon">⏳</span>
+          <span class="category-name">Wait</span>
+          <span class="badge" id="badge-wait" style="display:none"></span>
+        </li>
+        <li class="category-item" data-category="someday">
+          <span class="category-icon">🌱</span>
+          <span class="category-name">Someday</span>
+          <span class="badge" id="badge-someday" style="display:none"></span>
+        </li>
+        <li class="category-item" data-category="reference">
+          <span class="category-icon">📁</span>
+          <span class="category-name">Reference</span>
+          <span class="badge" id="badge-reference" style="display:none"></span>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- ── 메인 ── -->
+    <div class="main">
+
+      <!-- 헤더: 제목 + 전체 진행률 -->
+      <header class="header">
+        <h1 class="app-title">할 일 관리</h1>
+        <div class="progress-wrap" id="progress-wrap">
+          <span class="progress-label" id="progress-label">완료 0 / 전체 0</span>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+        <span class="all-done-msg" id="all-done-msg" style="display:none">모든 할 일을 완료했습니다! 🎉</span>
+        <button class="btn-io" id="btn-export" title="데이터 내보내기">💾</button>
+        <button class="btn-io" id="btn-import" title="데이터 가져오기">📂</button>
+        <input type="file" id="import-file" accept=".json" style="display:none">
+        <button class="btn-log" id="btn-log" title="활동 로그">📋</button>
+      </header>
+
+      <!-- 콘텐츠 영역 -->
+      <div class="content">
+
+        <!-- 입력 폼 -->
+        <form class="input-form" id="todo-form">
+          <div class="input-row">
+            <input type="text" id="todo-input" placeholder="새 할 일을 입력하세요...">
+            <button type="submit" class="btn-add">추가</button>
+          </div>
+          <div class="date-row">
+            <label class="date-field">
+              <span>📅 목표일</span>
+              <input type="date" id="input-target-date">
+            </label>
+            <label class="date-field">
+              <span>⏰ 기한</span>
+              <input type="date" id="input-due-date">
+            </label>
+          </div>
+        </form>
+
+        <!-- 정렬 버튼 -->
+        <div class="sort-group">
+          <button class="sort-btn active" data-sort="updatedAt">수정순 ↓</button>
+          <button class="sort-btn" data-sort="targetDate">목표순</button>
+        </div>
+
+        <!-- 할 일 목록 (JS로 렌더링) -->
+        <div class="todo-list" id="todo-list"></div>
+
+        <!-- 빈 상태 -->
+        <div class="empty-state" id="empty-state" style="display:none">
+          <div class="empty-state-icon">📭</div>
+          <p>이 카테고리에 할 일이 없습니다</p>
+        </div>
+
+        <!-- 카테고리 진행률 + 완료 항목 삭제 -->
+        <div class="category-footer">
+          <span class="cat-progress-label" id="cat-progress-label"></span>
+          <div class="cat-progress-bar-bg">
+            <div class="cat-progress-bar-fill" id="cat-progress-fill" style="width:0%"></div>
+          </div>
+          <button class="btn-clear-done" id="btn-clear-done">완료 항목 삭제</button>
+        </div>
+
+      </div><!-- /.content -->
+    </div><!-- /.main -->
+  </div><!-- /.app -->
+
+  <!-- ── 로그 패널 ── -->
+  <div class="log-overlay" id="log-overlay"></div>
+  <div class="log-panel" id="log-panel">
+    <div class="log-panel-header">
+      <span>활동 로그</span>
+      <button class="log-close-btn" id="log-close-btn">✕</button>
+    </div>
+    <div class="log-entries" id="log-entries"></div>
+  </div>
+
+  <script>
+    // ── 상수 ──────────────────────────────────────────────
+    const STORAGE_KEY = 'todo-app-data';
+    const LOG_KEY     = 'todo-app-log';
+    const LOG_MAX     = 500;
+
+    const CATEGORIES = [
+      { value: 'inbox',     label: 'Inbox' },
+      { value: 'todo',      label: 'To Do' },
+      { value: 'wait',      label: 'Wait' },
+      { value: 'someday',   label: 'Someday' },
+      { value: 'reference', label: 'Reference' },
+    ];
+
+    // ── 메모리 상태 ───────────────────────────────────────
+    let todos = [];
+    let currentCategory = 'inbox';
+    let currentSort    = 'updatedAt';
+    let currentSortDir = 'desc';      // 'asc' | 'desc'
+
+    // ── 활동 로그 ────────────────────────────────────────
+
+    function loadLogs() {
+      try {
+        const raw = localStorage.getItem(LOG_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    }
+
+    function saveLogs(logs) {
+      localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+    }
+
+    function addLog(type, todo, meta = {}) {
+      const logs = loadLogs();
+      logs.push({
+        id: crypto.randomUUID(),
+        type,
+        todoId:    todo.id,
+        todoText:  todo.text,
+        category:  todo.category,
+        timestamp: new Date().toISOString(),
+        meta,
+      });
+      // 500개 초과 시 오래된 항목 trim
+      if (logs.length > LOG_MAX) logs.splice(0, logs.length - LOG_MAX);
+      saveLogs(logs);
+    }
+
+    // ── localStorage 읽기/쓰기 ────────────────────────────
+
+    function loadTodos() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const list = raw ? JSON.parse(raw) : [];
+        // 기존 데이터에 날짜 필드가 없으면 null로 보정
+        return list.map(t => ({ targetDate: null, dueDate: null, ...t }));
+      } catch {
+        return [];
+      }
+    }
+
+    function saveTodos(list) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    // ── CRUD ──────────────────────────────────────────────
+
+    function addTodo(text, category = 'inbox', targetDate = null, dueDate = null) {
+      const trimmed = text.trim();
+      if (!trimmed) return null;
+
+      const todo = {
+        id: crypto.randomUUID(),
+        text: trimmed,
+        category,
+        done: false,
+        targetDate: targetDate || null,
+        dueDate: dueDate || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      todos.push(todo);
+      saveTodos(todos);
+      addLog('create', todo);
+      return todo;
+    }
+
+    function updateTodo(id, changes) {
+      const idx = todos.findIndex(t => t.id === id);
+      if (idx === -1) return null;
+
+      const before = todos[idx];
+      todos[idx] = { ...before, ...changes, updatedAt: new Date().toISOString() };
+      saveTodos(todos);
+      const after = todos[idx];
+
+      if ('done' in changes)
+        addLog(changes.done ? 'complete' : 'uncomplete', after);
+      if ('category' in changes && changes.category !== before.category)
+        addLog('category-change', after, { from: before.category, to: changes.category });
+      if ('text' in changes && changes.text !== before.text)
+        addLog('text-edit', after, { before: before.text, after: changes.text });
+      if ('targetDate' in changes && changes.targetDate !== before.targetDate)
+        addLog('date-set', after, { field: 'targetDate', value: changes.targetDate });
+      if ('dueDate' in changes && changes.dueDate !== before.dueDate)
+        addLog('date-set', after, { field: 'dueDate', value: changes.dueDate });
+
+      return after;
+    }
+
+    function deleteTodo(id) {
+      const idx = todos.findIndex(t => t.id === id);
+      if (idx === -1) return false;
+
+      const todo = todos[idx];
+      todos.splice(idx, 1);
+      saveTodos(todos);
+      addLog('delete', todo, { wasDone: todo.done });
+      return true;
+    }
+
+    function deleteCompletedInCategory(category) {
+      const deleted = todos.filter(t => t.category === category && t.done);
+      todos = todos.filter(t => !(t.category === category && t.done));
+      saveTodos(todos);
+      deleted.forEach(todo => addLog('batch-delete', todo, { wasDone: true }));
+    }
+
+    // ── 사이드바 ──────────────────────────────────────────
+
+    function updateBadges() {
+      CATEGORIES.forEach(cat => {
+        const count = todos.filter(t => t.category === cat.value && !t.done).length;
+        const badge = document.getElementById('badge-' + cat.value);
+        badge.textContent = count;
+        badge.style.display = count > 0 ? '' : 'none';
+      });
+    }
+
+    function updateSidebar() {
+      document.querySelectorAll('.category-item').forEach(li => {
+        li.classList.toggle('active', li.dataset.category === currentCategory);
+      });
+    }
+
+    function updateProgress() {
+      // 전체 진행률 (헤더)
+      const total   = todos.length;
+      const doneAll = todos.filter(t => t.done).length;
+      const pctAll  = total ? Math.round(doneAll / total * 100) : 0;
+
+      document.getElementById('progress-label').textContent = `완료 ${doneAll} / 전체 ${total}`;
+      document.getElementById('progress-fill').style.width  = pctAll + '%';
+
+      const allDoneEl   = document.getElementById('all-done-msg');
+      const progressWrap = document.getElementById('progress-wrap');
+      const allDone = total > 0 && doneAll === total;
+      allDoneEl.style.display    = allDone ? '' : 'none';
+      progressWrap.style.display = allDone ? 'none' : '';
+
+      // 카테고리 진행률 (하단 푸터)
+      const inCat   = todos.filter(t => t.category === currentCategory);
+      const doneCat = inCat.filter(t => t.done);
+      const pctCat  = inCat.length ? Math.round(doneCat.length / inCat.length * 100) : 0;
+      const catLabel = CATEGORIES.find(c => c.value === currentCategory)?.label ?? currentCategory;
+
+      document.getElementById('cat-progress-label').textContent = `${catLabel}: ${doneCat.length} / ${inCat.length}`;
+      document.getElementById('cat-progress-fill').style.width  = pctCat + '%';
+      document.getElementById('btn-clear-done').disabled        = doneCat.length === 0;
+    }
+
+    function updateSortButtons() {
+      const dirIcon = currentSortDir === 'asc' ? ' ↑' : ' ↓';
+      document.querySelectorAll('.sort-btn').forEach(btn => {
+        const isActive = btn.dataset.sort === currentSort;
+        btn.classList.toggle('active', isActive);
+        const label = btn.dataset.sort === 'updatedAt' ? '수정순' : '기한순';
+        btn.textContent = isActive ? label + dirIcon : label;
+      });
+    }
+
+    function sortTodos(list) {
+      const d = currentSortDir === 'asc' ? 1 : -1;
+      return [...list].sort((a, b) => {
+        if (currentSort === 'targetDate') {
+          const aHas = !!a.targetDate;
+          const bHas = !!b.targetDate;
+          // 날짜 없는 항목은 방향 무관하게 항상 뒤로
+          if (aHas && bHas) return a.targetDate < b.targetDate ? -d : a.targetDate > b.targetDate ? d : 0;
+          if (aHas) return -1;
+          if (bHas) return  1;
+          // 둘 다 목표일 없음 → updatedAt 방향 적용
+        }
+        return a.updatedAt > b.updatedAt ? -d : a.updatedAt < b.updatedAt ? d : 0;
+      });
+    }
+
+    function refresh() {
+      renderTodos();
+      updateBadges();
+      updateProgress();
+      updateSortButtons();
+    }
+
+    // ── 날짜 유틸 ─────────────────────────────────────────
+
+    function today() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    // '오늘'/'어제'/'내일' 또는 원래 날짜 문자열 반환
+    function formatDate(dateStr) {
+      if (!dateStr) return dateStr;
+      const t = today();
+      if (dateStr === t) return '오늘';
+      // new Date('YYYY-MM-DD')는 UTC 자정 기준 → 두 날짜 모두 같은 기준이므로 안전
+      const diffDays = Math.round((new Date(dateStr) - new Date(t)) / 86400000);
+      if (diffDays === -1) return '어제';
+      if (diffDays ===  1) return '내일';
+      return dateStr;
+    }
+
+    // dueDate: 오늘 포함 이전이면 overdue
+    function dueDateClass(dueDate, done) {
+      if (!dueDate || done) return '';
+      return dueDate <= today() ? 'overdue' : '';
+    }
+
+    // targetDate: 오늘이면 target-today(초록), 지났으면 overdue(빨강)
+    function targetDateClass(targetDate, done) {
+      if (!targetDate || done) return '';
+      const t = today();
+      if (targetDate === t) return 'target-today';
+      if (targetDate < t)   return 'overdue';
+      return '';
+    }
+
+    // ── 렌더링 ────────────────────────────────────────────
+
+    function renderTodos() {
+      const listEl  = document.getElementById('todo-list');
+      const emptyEl = document.getElementById('empty-state');
+
+      // 현재 카테고리 항목: 미완료 먼저, 완료 나중 (각각 정렬 적용)
+      const inCategory = todos.filter(t => t.category === currentCategory);
+      const sorted = [
+        ...sortTodos(inCategory.filter(t => !t.done)),
+        ...sortTodos(inCategory.filter(t =>  t.done)),
+      ];
+
+      // 빈 상태 처리
+      listEl.style.display  = sorted.length ? '' : 'none';
+      emptyEl.style.display = sorted.length ? 'none' : '';
+
+      // 목록 렌더링
+      listEl.innerHTML = '';
+      sorted.forEach(todo => {
+        const item = document.createElement('div');
+        item.className = 'todo-item' + (todo.done ? ' done' : '');
+
+        // 체크박스
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'todo-checkbox';
+        cb.checked = todo.done;
+        cb.addEventListener('change', () => {
+          updateTodo(todo.id, { done: cb.checked });
+          refresh();
+        });
+
+        // 본문 영역 (텍스트 + 날짜)
+        const body = document.createElement('div');
+        body.className = 'todo-body';
+
+        const span = document.createElement('span');
+        span.className = 'todo-text';
+        span.textContent = todo.text;
+        span.addEventListener('click', () => startEdit(todo.id, span));
+        body.appendChild(span);
+
+        // 날짜 행 (있을 때만 표시)
+        if (todo.targetDate || todo.dueDate) {
+          const datesRow = document.createElement('div');
+          datesRow.className = 'todo-dates';
+
+          if (todo.targetDate) {
+            const td = document.createElement('span');
+            const tdClass = targetDateClass(todo.targetDate, todo.done);
+            td.className = 'todo-date' + (tdClass ? ' ' + tdClass : '');
+            td.textContent = `📅 목표일: ${formatDate(todo.targetDate)}`;
+            td.dataset.value = todo.targetDate;
+            td.addEventListener('click', () => startDateEdit(todo.id, 'targetDate', td));
+            datesRow.appendChild(td);
+          }
+
+          if (todo.dueDate) {
+            const dd = document.createElement('span');
+            const ddClass = dueDateClass(todo.dueDate, todo.done);
+            dd.className = 'todo-date' + (ddClass ? ' ' + ddClass : '');
+            dd.textContent = `⏰ 기한: ${formatDate(todo.dueDate)}`;
+            dd.dataset.value = todo.dueDate;
+            dd.addEventListener('click', () => startDateEdit(todo.id, 'dueDate', dd));
+            datesRow.appendChild(dd);
+          }
+
+          body.appendChild(datesRow);
+        }
+
+        // 카테고리 드롭다운
+        const sel = document.createElement('select');
+        sel.className = 'todo-category-select';
+        CATEGORIES.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat.value;
+          opt.textContent = cat.label;
+          opt.selected = cat.value === todo.category;
+          sel.appendChild(opt);
+        });
+        sel.addEventListener('change', () => {
+          updateTodo(todo.id, { category: sel.value });
+          refresh();
+        });
+
+        // 삭제 버튼
+        const del = document.createElement('button');
+        del.className = 'btn-delete';
+        del.title = '삭제';
+        del.textContent = '✕';
+        del.addEventListener('click', () => {
+          deleteTodo(todo.id);
+          refresh();
+        });
+
+        item.append(cb, body, sel, del);
+        listEl.appendChild(item);
+      });
+    }
+
+    // ── 인라인 편집 (텍스트 + 날짜) ─────────────────────────
+
+    function startEdit(id, spanEl) {
+      const todo = todos.find(t => t.id === id);
+      if (!todo) return;
+
+      const body = spanEl.closest('.todo-body');
+
+      // ① 텍스트 span → input 교체
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.className = 'todo-text';
+      textInput.value = todo.text;
+      textInput.style.cssText = 'border:1px solid #63b3ed; border-radius:6px; padding:2px 6px; font-size:15px; outline:none;';
+      spanEl.replaceWith(textInput);
+
+      // ② 기존 날짜 표시 행 제거 후 편집용 날짜 행 삽입
+      body.querySelector('.todo-dates')?.remove();
+
+      const dateEditRow = document.createElement('div');
+      dateEditRow.className = 'date-row';
+
+      const tdLabel = document.createElement('label');
+      tdLabel.className = 'date-field';
+      tdLabel.innerHTML = '<span>📅 목표일</span>';
+      const tdInput = document.createElement('input');
+      tdInput.type = 'date';
+      tdInput.value = todo.targetDate || '';
+      tdLabel.appendChild(tdInput);
+
+      const ddLabel = document.createElement('label');
+      ddLabel.className = 'date-field';
+      ddLabel.innerHTML = '<span>⏰ 기한</span>';
+      const ddInput = document.createElement('input');
+      ddInput.type = 'date';
+      ddInput.value = todo.dueDate || '';
+      ddLabel.appendChild(ddInput);
+
+      dateEditRow.append(tdLabel, ddLabel);
+      body.appendChild(dateEditRow);
+
+      textInput.focus();
+      textInput.select();
+
+      let committed = false;
+      const commit = () => {
+        if (committed) return;
+        committed = true;
+        const newText = textInput.value.trim() || todo.text;
+        updateTodo(id, {
+          text: newText,
+          targetDate: tdInput.value || null,
+          dueDate: ddInput.value || null,
+        });
+        refresh();
+      };
+
+      textInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { committed = true; refresh(); }
+      });
+
+      // body 밖으로 포커스가 이동하면 저장 (날짜 input 사이 이동은 무시)
+      body.addEventListener('focusout', e => {
+        if (!body.contains(e.relatedTarget)) commit();
+      });
+    }
+
+    // ── 날짜 인라인 편집 ──────────────────────────────────
+
+    function startDateEdit(todoId, field, labelEl) {
+      const input = document.createElement('input');
+      input.type = 'date';
+      input.value = labelEl.dataset.value || '';
+      input.style.cssText = 'border:1px solid #63b3ed; border-radius:6px; padding:2px 6px; font-size:12px; outline:none; cursor:pointer;';
+
+      labelEl.replaceWith(input);
+      input.focus();
+
+      let committed = false;
+      const commit = () => {
+        if (committed) return;
+        committed = true;
+        updateTodo(todoId, { [field]: input.value || null });
+        refresh();
+      };
+
+      input.addEventListener('change', commit);
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { committed = true; refresh(); }
+      });
+    }
+
+    // ── 로그 뷰어 ────────────────────────────────────────
+
+    const LOG_ICONS = {
+      'create':          '➕',
+      'complete':        '✅',
+      'uncomplete':      '↩️',
+      'delete':          '🗑️',
+      'batch-delete':    '🧹',
+      'category-change': '📂',
+      'text-edit':       '✏️',
+      'date-set':        '📅',
+    };
+
+    function formatLogTime(ts) {
+      const d = new Date(ts);
+      return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} `
+           + `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function formatLogText(e) {
+      const t = e.todoText;
+      switch (e.type) {
+        case 'create':          return `"${t}" 추가됨`;
+        case 'complete':        return `"${t}" 완료`;
+        case 'uncomplete':      return `"${t}" 미완료로 복원`;
+        case 'delete':          return `"${t}" 삭제됨${e.meta.wasDone ? ' (완료 상태)' : ''}`;
+        case 'batch-delete':    return `"${t}" 일괄삭제됨 (완료 항목 삭제)`;
+        case 'category-change': return `"${t}": ${e.meta.from} → ${e.meta.to}`;
+        case 'text-edit':       return `"${e.meta.before}" → "${e.meta.after}"`;
+        case 'date-set': {
+          const field = e.meta.field === 'targetDate' ? '목표일' : '기한';
+          return e.meta.value ? `"${t}" ${field}: ${e.meta.value}` : `"${t}" ${field} 삭제`;
+        }
+        default: return t;
+      }
+    }
+
+    function renderLogPanel() {
+      const el   = document.getElementById('log-entries');
+      const logs = loadLogs().slice().reverse().slice(0, 100);
+      if (!logs.length) {
+        el.innerHTML = '<div class="log-empty">아직 기록이 없습니다</div>';
+        return;
+      }
+      el.innerHTML = '';
+      logs.forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        div.innerHTML =
+          `<span class="log-entry-icon">${LOG_ICONS[entry.type] ?? '•'}</span>` +
+          `<div class="log-entry-body">` +
+            `<div class="log-entry-text">${formatLogText(entry)}</div>` +
+            `<div class="log-entry-time">${formatLogTime(entry.timestamp)}</div>` +
+          `</div>`;
+        el.appendChild(div);
+      });
+    }
+
+    function openLogPanel()  {
+      renderLogPanel();
+      document.getElementById('log-panel').classList.add('open');
+      document.getElementById('log-overlay').classList.add('open');
+    }
+
+    function closeLogPanel() {
+      document.getElementById('log-panel').classList.remove('open');
+      document.getElementById('log-overlay').classList.remove('open');
+    }
+
+    // ── 입력 폼 이벤트 ────────────────────────────────────
+
+    document.getElementById('todo-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const input      = document.getElementById('todo-input');
+      const targetDate = document.getElementById('input-target-date').value || null;
+      const dueDate    = document.getElementById('input-due-date').value || null;
+      addTodo(input.value, currentCategory, targetDate, dueDate);
+      input.value = '';
+      document.getElementById('input-target-date').value = '';
+      document.getElementById('input-due-date').value = '';
+      refresh();
+    });
+
+    // ── "완료 항목 삭제" 버튼 ─────────────────────────────
+    document.getElementById('btn-clear-done').addEventListener('click', () => {
+      deleteCompletedInCategory(currentCategory);
+      refresh();
+    });
+
+    // ── 사이드바 카테고리 클릭 ────────────────────────────
+    document.querySelectorAll('.category-item').forEach(li => {
+      li.addEventListener('click', () => {
+        currentCategory = li.dataset.category;
+        updateSidebar();
+        refresh();
+      });
+    });
+
+    // ── 정렬 버튼 클릭 ───────────────────────────────────
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.sort === currentSort) {
+          // 같은 버튼: 방향 토글
+          currentSortDir = currentSortDir === 'desc' ? 'asc' : 'desc';
+        } else {
+          // 다른 버튼: 기준 변경, 방향 유지
+          currentSort = btn.dataset.sort;
+        }
+        refresh();
+      });
+    });
+
+    // ── 내보내기 / 가져오기 ───────────────────────────────
+    function exportData() {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        version: 1,
+        data: localStorage.getItem(STORAGE_KEY),
+        log:  localStorage.getItem(LOG_KEY),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `todos-backup-${today()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed.data) throw new Error('유효하지 않은 파일입니다.');
+          const list = JSON.parse(parsed.data);
+          if (!Array.isArray(list)) throw new Error('데이터 형식이 올바르지 않습니다.');
+          if (!confirm(`할 일 ${list.length}개를 가져옵니다.\n현재 데이터를 덮어씁니다. 계속하시겠습니까?`)) return;
+          localStorage.setItem(STORAGE_KEY, parsed.data);
+          if (parsed.log) localStorage.setItem(LOG_KEY, parsed.log);
+          todos = loadTodos();
+          refresh();
+        } catch (err) {
+          alert('파일을 읽을 수 없습니다: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    document.getElementById('btn-export').addEventListener('click', exportData);
+    document.getElementById('btn-import').addEventListener('click', () => {
+      document.getElementById('import-file').click();
+    });
+    document.getElementById('import-file').addEventListener('change', e => {
+      if (e.target.files[0]) {
+        importData(e.target.files[0]);
+        e.target.value = '';
+      }
+    });
+
+    // ── 로그 패널 이벤트 ──────────────────────────────────
+    document.getElementById('btn-log').addEventListener('click', openLogPanel);
+    document.getElementById('log-close-btn').addEventListener('click', closeLogPanel);
+    document.getElementById('log-overlay').addEventListener('click', closeLogPanel);
+
+    // ── 초기화 ───────────────────────────────────────────
+    todos = loadTodos();
+    updateSidebar();
+    refresh();
+
+    // ── 콘솔 테스트용 노출 ────────────────────────────────
+    Object.assign(window, {
+      loadTodos,
+      saveTodos,
+      addTodo,
+      updateTodo,
+      deleteTodo,
+      deleteCompletedInCategory,
+      renderTodos,
+      updateBadges,
+      updateProgress,
+      updateSidebar,
+      refresh,
+      loadLogs,
+      addLog,
+      getLogs: loadLogs,
+      get todos() { return todos; },
+      get currentCategory() { return currentCategory; },
+    });
+  </script>
+</body>
+</html>
